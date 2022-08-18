@@ -1,0 +1,5 @@
+Já atualizado para depois de sexta-feira!
+Só rodar.
+UPDATE Eletrodos set Tempo_Trabalhado=ABS(Tempo_Trabalhado)*10+Vale where ID>=1220;
+UPDATE Eletrodos set Vale=Direcao where ID>=1220;
+UPDATE Eletrodos set Direcao=Especial where ID>=1220;
