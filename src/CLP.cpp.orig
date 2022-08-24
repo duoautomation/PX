@@ -6,7 +6,8 @@ int CLP::counter=0;
 unsigned long CLP::tFim=0;
 unsigned long CLP::tInicio=0;
 
-struct CLP::Dados {
+struct CLP::Dados
+{
     int ano;
     int mes;
     int dia;
@@ -28,38 +29,38 @@ struct CLP::Dados {
     int pneumatico;
 };
 
-void CLP::Break(String texto) {
+void CLP::Break(String texto)
+{
 
     for(int i=0; i<100-texto.length(); i++)
     {
 
-        if(i==(int)(100-texto.length())/2) {
+        if(i==(int)(100-texto.length())/2)
+        {
             Serial.print(texto);
             continue;
         }
         Serial.print("-");
 
     }
+
     Serial.print("\n");
 
 }
 
-bool CLP::especial(struct CLP::Dados *dados) {
+bool CLP::especial(struct CLP::Dados *dados)
+{
 
-    if((dados->vale>(dados->n_vales_esp-1)) || dados->vale<(dados->t_vales-dados->n_vales_esp)) {
+    if((dados->vale>(dados->n_vales_esp-1)) || dados->vale<(dados->t_vales-dados->n_vales_esp))
+    {
         return false;
-    } else
+    }
+    else
         return true;
 }
 
-String CLP::comporTimeStamp(int dia,int mes,int ano,int hora,int minuto,int segundo) {
-
-    return (String(ano)+'-'+String(mes)+'-'+String(dia)+' '+String(hora)+':'+String(minuto)+':'+String(segundo));
-}
-
-
-
-void CLP::printar_dados(CLP::Dados *dados) {
+void CLP::printar_dados(CLP::Dados *dados)
+{
     Serial.print("Vale: ");
     Serial.print(dados->vale);
     Serial.print("\n");
@@ -105,7 +106,8 @@ void CLP::printar_dados(CLP::Dados *dados) {
 
 }
 
-void CLP::ler_clp(struct Dados *dados, ModbusTCPClient *modbusTCPClient) {
+void CLP::ler_clp(struct Dados *dados, ModbusTCPClient *modbusTCPClient)
+{
 
     //Leitura das Memorias de interesse
     dados->vale=modbusTCPClient->holdingRegisterRead(0x987a);//D6266
@@ -129,7 +131,8 @@ void CLP::ler_clp(struct Dados *dados, ModbusTCPClient *modbusTCPClient) {
 
 }
 
-char *CLP::formatar_dados(struct Dados *dados) {
+char *CLP::formatar_dados(struct Dados *dados)
+{
 
     char *retorneMe = (char *) malloc(sizeof(struct Dados));
     sprintf(retorneMe,"%04d;%02d;%02d;%02d;%02d;%02d;%d;%02d;%d;%d;%d;%d;%d;%d",dados->ano,dados->mes,dados->dia,dados->hora,dados->minuto,dados->segundo,dados->min_t,dados->vale,dados->direcao,dados->especial,dados->receita,dados->ver_se_parou,dados->num_serie,dados->simulacao);
@@ -138,22 +141,60 @@ char *CLP::formatar_dados(struct Dados *dados) {
     return retorneMe;
 }
 
-int compararDados(struct CLP::Dados *velho, struct CLP::Dados *novo) {
+int compararDados(struct CLP::Dados *velho, struct CLP::Dados *novo,int *passo)
+{
+    //Retornamos -2 quando não temos certeza se o CLP está conectado.
+    //Caso contrario retornamos zero
+
+
+    //Vemos se estamos conectados
+    if(novo->operando==-1) {
+        return -2;
+    }
 
     //Usuário parou a máquina mas não trocou de eletrodo
-    if(velho->operando==0 && novo->operando==1) {
+    if(velho->operando==0 && novo->operando==1)
+    {
+        *passo = 0;
+    }
+
+
+    if(novo->operando == 1) {
         return 0;
-        //pausar
+    }
+
+    if(novo->operando==0 && *passo==-1)
+    {
+        *passo = 1;
+    }
+
+    if(velho->pneumatico==0 && novo->pneumatico==1) {
+        *passo = 1;
+    }
+
+    //Nada houve
+    if(velho->pneumatico==1 && novo->pneumatico==1) {
+        *passo = 2;
+    }
+
+    //Provavelmente terminou o eletrodo
+    if(velho->pneumatico==1 && novo->pneumatico==0) {
+        *passo = 3;
     }
 
     //Houve troca de eletrodo entre um snap e outro
-    if(velho->vale!=novo->vale) {
-        return 2;
+    //Precisamos inserir e vida que segue
+    if(velho->vale!=novo->vale)
+    {
+        *passo = 4;
     }
+
+    return 0;
 
 }
 
-char *CLP::contar(ModbusTCPClient *modbusTCPClient,char *nomeCSV,int *passo,int numSerie, struct CLP::Dados *snap) {
+char *CLP::contar(ModbusTCPClient *modbusTCPClient,char *nomeCSV,int *passo,int numSerie, struct CLP::Dados *snap)
+{
 
     struct CLP::Dados dados;
 
@@ -172,13 +213,15 @@ char *CLP::contar(ModbusTCPClient *modbusTCPClient,char *nomeCSV,int *passo,int 
 
     //Vemos se estamos em basico
     //Se sim ignoramos
-    if(dados.operando==1) {
+    if(dados.operando==1)
+    {
         return NULL;
     }
 
     //Vemos se estamos no ultimo
     //ou primeiro vale
-    if((dados.vale==0 || dados.vale==dados.t_vales) && dados.pneumatico==1) {
+    if((dados.vale==0 || dados.vale==dados.t_vales) && dados.pneumatico==1)
+    {
         tInicio=millis();
         *passo=3;
     }
@@ -187,31 +230,38 @@ char *CLP::contar(ModbusTCPClient *modbusTCPClient,char *nomeCSV,int *passo,int 
     Serial.println(dados.pneumatico);
     Serial.println("==================");
 
-    switch(*passo) {
+    //passo -1, o usuário ainda está em básico e não entrou em operacao --> registramos em uma variável first
+    //passo  0, o usuário estava em operacao, e não está mais --> paramos de registrar o tempo e verificamos troca de vale
+    //passo 1, o pneumático desceu e o robo está em operacao --> começamos a medir o tempo
+    //passo 2, o pneumático está descido e está em operacao --> vemos o estado do pneumático
+    //passo 3, o pneumático subiu, está em operacao --> vemos se o vale ou a direcao mudou, se sim registramos
+
+    //troca de eletrodo -> só acontece quando há mudança de vale
+    //tempo de chapisco -> intervalo de tempo em que o pneumático sobe e desce
+    switch(*passo)
+    {
 
     case -1:
-        /*Primeiro Ciclo*/
-        *passo=1;
+        /*Usuário em básico*/ 
+        Serial.println("-->Passo -1");
+        break;
+
+    case 0:
         break;
 
     case 1:
-        Serial.println("-->Passo 1");
-        Serial.println("==================");
-        Serial.println(dados.pneumatico);
-        Serial.println("==================");
 
-        if(dados.pneumatico==1) {
-            Serial.println("Proximo passo...");
+            Serial.println("Iniciando cronometro");
             *passo=2;
             tInicio=millis();
-        }
 
         break;
 
     case 2:
-        Serial.println("-->Passo 2");
+        Serial.println("-->Aguardando pneumático");
 
-        if(dados.pneumatico==0) {
+        if(dados.pneumatico==0)
+        {
             tFim=millis()-tInicio;
             dados.min_t = tFim/1000;
             *passo=1;
@@ -222,7 +272,8 @@ char *CLP::contar(ModbusTCPClient *modbusTCPClient,char *nomeCSV,int *passo,int 
 
     case 3:
         Serial.println("-->Passo 3");
-        if(dados.vale!=0 && dados.vale!=dados.t_vales) {
+        if(dados.vale!=0 && dados.vale!=dados.t_vales)
+        {
             tFim=millis()-tInicio;
             dados.min_t = tFim/1000;
             *passo=1;
@@ -230,7 +281,10 @@ char *CLP::contar(ModbusTCPClient *modbusTCPClient,char *nomeCSV,int *passo,int 
         }
 
         break;
+    case 4:
+        break;
 
     }
     return NULL;
 }
+

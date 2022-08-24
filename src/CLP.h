@@ -12,11 +12,12 @@ class CLP
     public:
 
         static int gNumE,counter, pneumaticoAntes,eletrodosQueimados;
+        static bool first;
         struct Dados;
         static unsigned long tInicio;//
         static unsigned long tFim;//
         static char *formatar_dados(struct Dados *dados);
-        static char *contar(ModbusTCPClient *modbusTCPClient,char *nomeCSV,int *passo,int numSerie, struct CLP::Dados *snap);
+        static char *contar(ModbusTCPClient *modbusTCPClient,char *nomeCSV,int *passo,int numSerie);
         static void Break(String texto);
         static bool especial(struct Dados *dados);
         static String comporTimeStamp(int dia,int mes,int ano,int hora,int minuto,int segundo);

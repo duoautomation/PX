@@ -1,0 +1,198 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+struct Dados
+{
+    int ano;
+    int mes;
+    int dia;
+    int hora;
+    int minuto;
+    int segundo;
+    int min_t;
+    int vale;
+    int direcao;
+    int e_especial;
+    int receita;
+    int ver_se_parou;
+    int num_serie;
+    int simulacao;
+    int n_vales_esp;
+    int t_vales;
+    int especial;
+    int operando;
+    int pneumatico;
+};
+
+
+void printar_dados(struct Dados *dados)
+{
+    printf("Vale: ");
+    printf("%d", dados->vale);
+    printf("\n");
+
+    printf("Ano: ");
+    printf("%d", dados->ano);
+    printf("\n");
+
+    printf("Mes: ");
+    printf("%d", dados->mes);
+    printf("\n");
+
+    printf("Dia: ");
+    printf("%d", dados->dia);
+    printf("\n");
+
+    printf("Hora: ");
+    printf("%d", dados->hora);
+    printf("\n");
+
+    printf("Minuto: ");
+    printf("%d", dados->minuto);
+    printf("\n");
+
+    printf("Segundo: ");
+    printf("%d", dados->segundo);
+    printf("\n");
+
+    printf("MINT: ");
+    printf("%d", dados->min_t);
+    printf("\n");
+
+    printf("Direcao: ");
+    printf("%d", dados->direcao);
+    printf("\n");
+
+    printf("EEspecial: ");
+    printf("%d", dados->e_especial);
+    printf("\n");
+
+    printf("Receita: ");
+    printf("%d", dados->receita);
+    printf("\n");
+
+    printf("VSP: ");
+    printf("%d", dados->ver_se_parou);
+    printf("\n");
+
+    printf("NumSerie: ");
+    printf("%d", dados->num_serie);
+    printf("\n");
+
+    printf("Pneumatico: ");
+    printf("%d", dados->pneumatico);
+    printf("\n");
+
+}
+
+int compararDados(struct Dados *velho, struct Dados *novo,int *passo)
+{
+    //Retornamos -2 quando não temos certeza se o CLP está conectado.
+
+    //passo -1, o usuário ainda está em básico e não entrou em operacao --> registramos em uma variável first
+    //passo  0, o usuário estava em operacao, e não está mais --> paramos de registrar o tempo e verificamos troca de vale
+    //passo 1, o pneumático desceu e o robo está em operacao --> começamos a medir o tempo
+    //passo 2, o pneumático está descido e está em operacao --> vemos o estado do pneumático
+    //passo 3, o pneumático subiu, está em operacao --> vemos se o vale ou a direcao mudou, se sim registramos
+
+    //troca de eletrodo -> só acontece quando há mudança de vale
+    //tempo de chapisco -> intervalo de tempo em que o pneumático sobe e desce
+
+    //Vemos se estamos conectados
+    if(novo->operando==-1) {
+        return -2;
+    }
+
+    //Usuário parou a máquina mas não trocou de eletrodo
+    if(velho->operando==0 && novo->operando==1)
+    {
+        *passo = 0;
+    }
+
+
+    if(novo->operando == 1) {
+        return 0;
+    }
+
+    if(novo->operando==0 && *passo==-1)
+    {
+        *passo = 1;
+    }
+
+    if(velho->pneumatico==0 && novo->pneumatico==1) {
+        *passo = 1;
+    }
+
+    //Nada houve
+    if(velho->pneumatico==1 && novo->pneumatico==1) {
+        *passo = 2;
+    }
+
+    //Provavelmente terminou o eletrodo
+    if(velho->pneumatico==1 && novo->pneumatico==0) {
+        *passo = 3;
+    }
+
+    //Houve troca de eletrodo entre um snap e outro
+    //Precisamos inserir e vida que segue
+    if(velho->vale!=novo->vale)
+    {
+        *passo = 4;
+    }
+
+    return 0;
+
+}
+
+int main() {
+
+    int passo=-1;
+
+    struct Dados velho;
+    velho.ano=2020;
+    velho.mes=10;
+    velho.dia=10;
+    velho.hora=22;
+    velho.minuto=10;
+    velho.segundo=1;
+    velho.min_t=100;
+    velho.vale=1;
+    velho.direcao=1;
+    velho.e_especial=1;
+    velho.receita=1;
+    velho.ver_se_parou=0;
+    velho.num_serie=1;
+    velho.simulacao=0;
+    velho.n_vales_esp=3;
+    velho.t_vales=40;
+    velho.especial=1;
+    velho.operando=0;
+    velho.pneumatico=1;
+
+    struct Dados novo;
+    novo.ano=2020;
+    novo.mes=10;
+    novo.dia=10;
+    novo.hora=22;
+    novo.minuto=10;
+    novo.segundo=1;
+    novo.min_t=100;
+    novo.vale=1;
+    novo.direcao=1;
+    novo.e_especial=1;
+    novo.receita=1;
+    novo.ver_se_parou=0;
+    novo.num_serie=1;
+    novo.simulacao=0;
+    novo.n_vales_esp=3;
+    novo.t_vales=40;
+    novo.especial=1;
+    novo.operando=0;
+    novo.pneumatico=1;
+
+    
+    int resposta = compararDados(&velho,&novo,&passo);
+    printf("Passo --> %d \n",passo);
+    printf("Resposta --> %d \n",resposta);
+
+}
