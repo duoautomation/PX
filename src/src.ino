@@ -91,7 +91,7 @@ void loop()
 
     /* } */
 
-    //cloud::logicaNuvem(nomeCSV,&ethClient,&precisaOutroArquivo,nomeCSV,numSerie);
+    cloud::logicaNuvem(nomeCSV,&ethClient,&precisaOutroArquivo,nomeCSV,numSerie);
 
     counter++;
 

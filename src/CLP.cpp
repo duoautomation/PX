@@ -28,6 +28,7 @@ struct CLP::Dados
     int especial;
     int operando;
     int pneumatico;
+    int num_e;
 };
 
 struct CLP::Dados *znap = NULL;
@@ -60,10 +61,15 @@ bool CLP::especial(struct CLP::Dados *dados)
     }
     else
         return true;
+
 }
 
 void CLP::printar_dados(CLP::Dados *dados)
 {
+
+    Serial.print("num_E: ");
+    Serial.print(dados->num_e);
+    Serial.print("\n");
     Serial.print("Vale: ");
     Serial.print(dados->vale);
     Serial.print("\n");
@@ -129,6 +135,7 @@ void dados_cp(struct CLP::Dados* origem, struct CLP::Dados* destino){
     destino->minuto = origem->minuto;
     destino->segundo = origem->segundo;
     destino->receita = origem->receita;
+    destino->num_e = origem->num_e;
 
 }
 
@@ -136,24 +143,25 @@ void CLP::ler_clp(struct Dados *dados, ModbusTCPClient *modbusTCPClient)
 {
 
     //Leitura das Memorias de interesse
-    dados->vale=modbusTCPClient->holdingRegisterRead(0x987a);//D6266
-    dados->n_vales_esp=modbusTCPClient->holdingRegisterRead(0x97a0);//D6048
-    dados->t_vales=modbusTCPClient->holdingRegisterRead(0x979a);//D6042
+    dados->vale = modbusTCPClient->holdingRegisterRead(0x987a);//D6266
+    dados->n_vales_esp = modbusTCPClient->holdingRegisterRead(0x97a0);//D6048
+    dados->t_vales = modbusTCPClient->holdingRegisterRead(0x979a);//D6042
 
-    dados->ver_se_parou=modbusTCPClient->coilRead(0x0834);
-    dados->direcao=modbusTCPClient->coilRead(0x0c1d);//M1053
-    dados->simulacao=modbusTCPClient->coilRead(0xb5cd);//M3021
-    dados->operando=modbusTCPClient->coilRead(0xbe8);
-    dados->pneumatico=modbusTCPClient->coilRead(0x0c33);
+    dados->ver_se_parou = modbusTCPClient->coilRead(0x0834);
+    dados->direcao = modbusTCPClient->coilRead(0x0c1d);//M1053
+    dados->simulacao = modbusTCPClient->coilRead(0xb5cd);//M3021
+    dados->operando = modbusTCPClient->coilRead(0xbe8);
+    dados->pneumatico = modbusTCPClient->coilRead(0x0c33);
 
-    dados->e_especial= especial(dados);//1digito
-    dados->dia=modbusTCPClient->holdingRegisterRead(0x11F4);//2digitos
-    dados->mes=modbusTCPClient->holdingRegisterRead(0x11F5);//2 digitos
-    dados->ano=modbusTCPClient->holdingRegisterRead(0x11F6);//4 digitos
-    dados->hora=modbusTCPClient->holdingRegisterRead(0x11F7);//2 digitos
-    dados->minuto=modbusTCPClient->holdingRegisterRead(0x11F8);//2 digitos
-    dados->segundo=modbusTCPClient->holdingRegisterRead(0x11F9);//2 digitos
-    dados->receita=modbusTCPClient->holdingRegisterRead(0x11FA);//1digito
+    dados->e_especial = especial(dados);//1digito
+    dados->dia = modbusTCPClient->holdingRegisterRead(0x11F4);//2digitos
+    dados->mes = modbusTCPClient->holdingRegisterRead(0x11F5);//2 digitos
+    dados->ano = modbusTCPClient->holdingRegisterRead(0x11F6);//4 digitos
+    dados->hora = modbusTCPClient->holdingRegisterRead(0x11F7);//2 digitos
+    dados->minuto = modbusTCPClient->holdingRegisterRead(0x11F8);//2 digitos
+    dados->segundo = modbusTCPClient->holdingRegisterRead(0x11F9);//2 digitos
+    dados->receita = modbusTCPClient->holdingRegisterRead(0x11FA);//1digito
+    dados->num_e = modbusTCPClient->holdingRegisterRead(0x9772);//
 
     if(first==false){
         znap = malloc(sizeof(struct Dados));
@@ -162,6 +170,7 @@ void CLP::ler_clp(struct Dados *dados, ModbusTCPClient *modbusTCPClient)
         Serial.println("FIIIIIIIIIIIIIIRST!");
         delay(5000);
     }
+
 }
 
 char *CLP::formatar_dados(struct Dados *dados)
@@ -192,7 +201,6 @@ int comparar_dados(struct CLP::Dados *velho, struct CLP::Dados *novo,int *passo)
         *passo = 0;
     }
 
-
     if(novo->operando == 1) {
         Serial.println("2");
         return 0;
@@ -214,13 +222,7 @@ int comparar_dados(struct CLP::Dados *velho, struct CLP::Dados *novo,int *passo)
         Serial.println("5");
         *passo = 2;
     }
-
-    //Provavelmente terminou o eletrodo
-    /* if(velho->pneumatico==1 && novo->pneumatico==0) { */
-    /*     Serial.println("6"); */
-    /*     *passo = 2; */
-    /* } */
-    
+ 
     if(novo->vale==0||novo->vale==novo->t_vales){
         Serial.println("7");
         *passo=2;
@@ -229,7 +231,7 @@ int comparar_dados(struct CLP::Dados *velho, struct CLP::Dados *novo,int *passo)
 
     //Houve troca de eletrodo entre um znap e outro
     //Precisamos inserir 
-    if(velho->vale!=novo->vale)
+    if(velho->num_e!=novo->num_e)
     {
         Serial.println("8");
         *passo = 3;
@@ -251,27 +253,15 @@ char *CLP::contar(ModbusTCPClient *modbusTCPClient,char *nomeCSV,int *passo,int 
     modbusTCPClient->begin(server,502);
     ler_clp(&dados,modbusTCPClient);
 
-    printar_dados(&dados);
+    
     Serial.print("CLP COUNTER-->");
     Serial.print(CLP::counter);
     Serial.print("\n");
-    printar_dados(znap);
+   
 
     modbusTCPClient->stop();
 
-
-    /* if(znap->operando==-1){ */
-    /*     Serial.println("2"); */
-    /*     printar_dados(znap); */
-    /*     dados_cp(&dados, znap); */
-    /*     return NULL; */
-    /* } */
-
-
     int resultado = comparar_dados(znap, &dados, passo);
-
-
-
 
     if(resultado==-2){
         return NULL;
@@ -280,21 +270,6 @@ char *CLP::contar(ModbusTCPClient *modbusTCPClient,char *nomeCSV,int *passo,int 
     dados_cp(&dados,znap);
     //Vemos se estamos em basico
     printar_dados(znap);
-    //Se sim ignoramos
-    
-    /* if(dados->operando==1) */
-    /* { */
-    /*     return NULL; */
-    /* } */
-
-    //Vemos se estamos no ultimo
-    //ou primeiro vale
-
-    /* if((dados->vale==0 || dados.vale==dados.t_vales) && dados.pneumatico==1) */
-    /* { */
-    /*     tInicio=millis(); */
-    /*     *passo=3; */
-    /* } */
 
     //passo -1, o usuário ainda está em básico e não entrou em operacao --> registramos em uma variável first
     //passo  0, o usuário estava em operacao, e não está mais --> paramos de registrar o tempo e verificamos troca de vale
