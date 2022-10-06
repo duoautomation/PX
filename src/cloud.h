@@ -14,4 +14,5 @@ public:
     static bool marcarPonteiro(SDLib::File *ponteiro);
     static void logicaNuvem(char *arquivoEnviando,EthernetClient *ethClient,bool *precisaOutroArquivo,char *nomeCSV,int numSerie);
     static boolean sendPOST(char *data,EthernetClient *ethClient);
+    static boolean sendGET(char *data, EthernetClient *client);
 };

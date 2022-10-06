@@ -67,11 +67,11 @@ void cloud::logicaNuvem(char *arquivoEnviando,EthernetClient *ethClient,bool *pr
             int size=strlen(linha);
             if(size>0)
             {
-                size=size+20;
+                size=size+12;
                 char *json =(char *) malloc(size*sizeof(char));
-                /* snprintf(json,size*sizeof(char),"{\"raw\":\"%s\"}",linha); */
-                snprintf(json,size*sizeof(char),"GET /test?raw=%s",linha);
+                snprintf(json,size*sizeof(char),"{\"raw\":\"%s\"}",linha);
 
+                //snprintf(json,size*sizeof(char),"{\"raw\":\"dskadjsakjdlksajdkl\"}",linha);
                 Serial.println("************************************************");
                 Serial.println(json);
                 Serial.println("************************************************");
@@ -79,8 +79,7 @@ void cloud::logicaNuvem(char *arquivoEnviando,EthernetClient *ethClient,bool *pr
                 Serial.print(nomePonteiro);
                 Serial.print("\n");
 
-                //bool result = sendPOST(json,ethClient);
-                bool result = sendGET(json, ethClient);
+                bool result = sendPOST(json,ethClient);
                 free(json);
 
                 if(result)
@@ -99,10 +98,10 @@ void cloud::logicaNuvem(char *arquivoEnviando,EthernetClient *ethClient,bool *pr
         else
         {
             //Fazemos um POST simples só para informar ao servidor que está conectado
-            int size=17;
+            int size=16;
             char *json=(char *) malloc(size*sizeof(char));
-            snprintf(json,size*sizeof(char),"GET /test?raw=%d",numSerie);
-            sendGET(json,ethClient);
+            snprintf(json,size*sizeof(char),"{\"raw\":\"%d\"}",numSerie);
+            sendPOST(json,ethClient);
             free(json);
 
         }
@@ -124,68 +123,6 @@ bool cloud::marcarPonteiro(SDLib::File *ponteiro)
 }
 
 
-boolean cloud::sendGET(char *data, EthernetClient *client){
-
-    int timer;
-    char compareMe[9]="INSERIDO\0";
-    int match = 0;
-    char server[]="23.239.10.90";
-
-    if (client->connect(server,8080))
-    { 
-        client->setTimeout(10000);
-        Serial.println("Conectado");
-        client->println(data);
-        Serial.println(data);
-        client->println("Host: adm.duo.com.br");
-        Serial.println("Host: adm.duo.com.br"); 
-        client->println("Connection: close");
-        Serial.println("Connection: close");
-         
-        client->println();
-        Serial.println("Enviado, aguardando resposta.");
-    }else{
-            return;
-    }
-
-        timer = 0;
-
-        while(!client->available()){
-                Serial.print(".");
-                delay(1);
-                timer++;
-                if(timer == 50000){
-                        return;
-                }
-        }
-        
-        Serial.print("\n");
-        
-
-        while(client->available() && client->connected() && match<8){
-
-                char c = client->read(); 
-                Serial.print(c); 
-                
-                if(compareMe[match] == c){
-                        match++;
-                }else{
-                        match = 0;
-                }
-        }
-
-        client->flush();
-        client->stop();
-        
-        Serial.println("MATCH");
-        Serial.println(match);
-        if(match == 8){
-                return true;
-        }else{
-                return false;
-        }
-}
-
 boolean cloud::sendPOST(char *data,EthernetClient *ethClient)
 {
     ethClient->setTimeout(15000);
@@ -196,45 +133,40 @@ boolean cloud::sendPOST(char *data,EthernetClient *ethClient)
     char *readString;
     int size=1;
 
+    Serial.print("Mio Caro Adone");
     if (ethClient->connect(serverName,8080))
     {
         Serial.println("connected");
-        ethClient->println("POST/ HTTP/1.1");
-        ethClient->println("Host: 23.239.10.90");
-        ethClient->println("Content-Type: application/json");
-        ethClient->print("Content-Length:"); 
+        ethClient->println("POST / HTTP/1.1");
+        ethClient->println("Host: adm.duo.com.br");
+        ethClient->println("Content-Type:application/json");
+        ethClient->print("Content-Length:");
         ethClient->print(strlen(data));
         ethClient->print("\n");
         ethClient->println("");
         ethClient->println(data);
         ethClient->println("Connection: close");
         ethClient->println();
+        Serial.print("7Memoria------>");
+        Serial.print(FreeRam());
+        Serial.print("\n");
     }
     else
     {
         Serial.println("Sem Internet.");
         Serial.println();
-        return false;
     }
-
     readString=(char *) malloc(sizeof(char));
     char compareMe[9]="INSERIDO\0";
     bool returnMe=false;;
-    while(ethClient->connected() && !ethClient->available())
+    while(ethClient->connected() && !ethClient->available()) delay(1);
+    while (ethClient->connected() || ethClient->available())
     {
-            delay(1);
-    }
-
-    while (ethClient->connected() && ethClient->available())
-    {
-        Serial.println("Conectado Aguardado dados...");
-
         char c = ethClient->read();
         size++;
-        if(size<300)
+        if(size<30)
         {
             readString=(char *) realloc(readString,size*sizeof(char));
-            Serial.println(c);
             readString[size-1]='\0';
             readString[size-2]=c;
 
@@ -269,6 +201,10 @@ boolean cloud::sendPOST(char *data,EthernetClient *ethClient)
     ethClient->stop();
     Serial.println(readString);
     Serial.println("cliente desconectado.");
+    /* Serial.println(strstr(readString,"200")!=NULL); */
+    /* if(strstr(readString,"200")!=NULL){ */
+    /* returnMe=true; */
+    /* } */
 
 
     free(readString);

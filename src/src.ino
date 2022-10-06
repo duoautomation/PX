@@ -21,7 +21,7 @@ IPAddress ip(192, 168, 1, 177);
 ModbusTCPClient modbusTCPClient(ethClient);
 int counter;
 int numE;
-int numSerie=-1;
+int numSerie=22;
 
 void iniciarEthernet()
 {
@@ -74,8 +74,8 @@ void loop()
     contagem = CLP::contar(&modbusTCPClient,nomeCSV,&passo,numSerie);
 
     if(strlen(contagem)>2)
-    { 
-        csv::escrever(nomeCSV,contagem);
+    {  
+        csv::escrever(nomeCSV,contagem); 
         numE++;
     }
 
@@ -84,12 +84,6 @@ void loop()
     Serial.print(FreeRam());
     Serial.print("\n");
 
-    /* if(precisaOutroArquivo) */
-    /* { */
-    /*     Serial.println("Alocando memoria..."); */
-    /*     precisaOutroArquivo=false; */
-
-    /* } */
 
     cloud::logicaNuvem(nomeCSV,&ethClient,&precisaOutroArquivo,nomeCSV,numSerie);
 

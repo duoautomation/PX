@@ -146,7 +146,6 @@ void CLP::ler_clp(struct Dados *dados, ModbusTCPClient *modbusTCPClient)
     dados->vale = modbusTCPClient->holdingRegisterRead(0x987a);//D6266
     dados->n_vales_esp = modbusTCPClient->holdingRegisterRead(0x97a0);//D6048
     dados->t_vales = modbusTCPClient->holdingRegisterRead(0x979a);//D6042
-
     dados->ver_se_parou = modbusTCPClient->coilRead(0x0834);
     dados->direcao = modbusTCPClient->coilRead(0x0c1d);//M1053
     dados->simulacao = modbusTCPClient->coilRead(0xb5cd);//M3021
@@ -161,13 +160,14 @@ void CLP::ler_clp(struct Dados *dados, ModbusTCPClient *modbusTCPClient)
     dados->minuto = modbusTCPClient->holdingRegisterRead(0x11F8);//2 digitos
     dados->segundo = modbusTCPClient->holdingRegisterRead(0x11F9);//2 digitos
     dados->receita = modbusTCPClient->holdingRegisterRead(0x11FA);//1digito
-    dados->num_e = modbusTCPClient->holdingRegisterRead(0x9772);//
+    //dados->num_e = modbusTCPClient->holdingRegisterRead(0x11FC);
+    dados->num_e = modbusTCPClient->holdingRegisterRead(0x9772); //----------------> Descomentar essa linha e comentar a superior.
 
     if(first==false){
         znap = malloc(sizeof(struct Dados));
         dados_cp(dados, znap);
         first = true;
-        Serial.println("FIIIIIIIIIIIIIIRST!");
+        Serial.println("CLP inicializado!");
         delay(5000);
     }
 
@@ -176,7 +176,7 @@ void CLP::ler_clp(struct Dados *dados, ModbusTCPClient *modbusTCPClient)
 char *CLP::formatar_dados(struct Dados *dados)
 {
 
-    char *retorneMe = (char *) malloc(sizeof(struct Dados));
+    char *retorneMe = (char *) malloc(52*sizeof(char));
     sprintf(retorneMe,"%04d;%02d;%02d;%02d;%02d;%02d;%d;%02d;%d;%d;%d;%d;%d;%d",dados->ano,dados->mes,dados->dia,dados->hora,dados->minuto,dados->segundo,dados->min_t,dados->vale,dados->direcao,dados->especial,dados->receita,dados->ver_se_parou,dados->num_serie,dados->simulacao);
     Serial.println(retorneMe);
 
@@ -185,8 +185,10 @@ char *CLP::formatar_dados(struct Dados *dados)
 
 int comparar_dados(struct CLP::Dados *velho, struct CLP::Dados *novo,int *passo)
 {
-    //Retornamos -2 quando não temos certeza se o CLP está conectado.
-    //Caso contrario retornamos zero
+    //Retornamos -2 quando não temos certeza se o CLP está conectado. --> Implementado
+    //Retornamos -1 se está em basico
+    //Retornamos 0 se nada ocorreu ---> Implementado
+    //Retornamos 1 se houve queima de eletrodo. --> Implementado
 
     //Vemos se estamos conectados
     if(novo->operando==-1) {
@@ -194,51 +196,20 @@ int comparar_dados(struct CLP::Dados *velho, struct CLP::Dados *novo,int *passo)
         return -2;
     }
 
-    //Usuário parou a máquina mas não trocou de eletrodo
-    if(velho->operando==0 && novo->operando==1)
-    {
-        Serial.println("1");
-        *passo = 0;
+    if(novo->operando == 1){
+            CLP::tInicio == 0;
+            return -1;
     }
 
-    if(novo->operando == 1) {
-        Serial.println("2");
-        return 0;
+
+    if(novo->num_e != velho->num_e && velho->pneumatico == 1){
+            return 1;
     }
 
-    if(novo->operando==0 && *passo==-1)
-    {
-        Serial.println("3");
-        *passo = 1;
+    if(novo->num_e == velho->num_e && novo->pneumatico == 1){
+            return 0;
     }
 
-    if(velho->pneumatico==0 && novo->pneumatico==1) {
-        Serial.println("4");
-        *passo = 1;
-    }
-
-    //Nada houve
-    if(velho->pneumatico==1 && novo->pneumatico==1) {
-        Serial.println("5");
-        *passo = 2;
-    }
- 
-    if(novo->vale==0||novo->vale==novo->t_vales){
-        Serial.println("7");
-        *passo=2;
-        return 0;
-    }
-
-    //Houve troca de eletrodo entre um znap e outro
-    //Precisamos inserir 
-    if(velho->num_e!=novo->num_e)
-    {
-        Serial.println("8");
-        *passo = 3;
-    }
-
-        Serial.println("4");
-    return 0;
 
 }
 
@@ -251,74 +222,40 @@ char *CLP::contar(ModbusTCPClient *modbusTCPClient,char *nomeCSV,int *passo,int 
     IPAddress server(192, 168, 1, 3);
 
     modbusTCPClient->begin(server,502);
+ 
     ler_clp(&dados,modbusTCPClient);
-
-    
-    Serial.print("CLP COUNTER-->");
-    Serial.print(CLP::counter);
-    Serial.print("\n");
-   
 
     modbusTCPClient->stop();
 
     int resultado = comparar_dados(znap, &dados, passo);
+    dados_cp(&dados, znap);
+    printar_dados(znap);
+    
 
-    if(resultado==-2){
+    if(resultado == -2 || resultado == -1){
         return NULL;
     }
 
-    dados_cp(&dados,znap);
-    //Vemos se estamos em basico
-    printar_dados(znap);
-
-    //passo -1, o usuário ainda está em básico e não entrou em operacao --> registramos em uma variável first
-    //passo  0, o usuário estava em operacao, e não está mais --> paramos de registrar o tempo e verificamos troca de vale
-    //passo 1, o pneumático desceu e o robo está em operacao --> começamos a medir o tempo
-    //passo 2, o pneumático está descido e está em operacao --> vemos o estado do pneumático
-    //passo 3, o pneumático subiu, está em operacao --> vemos se o vale ou a direcao mudou, se sim registramos
-
-    //troca de eletrodo -> só acontece quando há mudança de vale
-    //tempo de chapisco -> intervalo de tempo em que o pneumático sobe e desce
-    switch(*passo)
-    {
-
-    case -1:
-        /*Usuário em básico*/
-        Serial.println("-->Passo -1");
-        break;
-
-    case 0:
-        break;
-
-    case 1:
-
-        Serial.println("--> Pneumatico desceu...");
-        *passo=2;
-        tInicio=millis();
-
-        break;
-
-    case 2:
-        Serial.println("--> Aguardando pneumático subir...");
-
-        if(dados.pneumatico==0)
-        {
-            tFim += millis()-tInicio;
-        }
-
-        break;
-
-    case 3:
-        dados.min_t = tFim/1000;
-        *passo = -1;
-        CLP::counter++;
-        Serial.println("Quien??");
-        return formatar_dados(&dados);
-        break;
-    default:
-        Serial.println("Preparando...");
-
+    else if (resultado == 1){
+            dados.min_t = tFim/1000;
+            dados.num_serie = numSerie;
+            Serial.println("Novo Eletrodo");
+            Serial.println(formatar_dados(&dados));
+            return formatar_dados(&dados);
     }
-    return NULL;
+
+    else if(resultado == 0){
+
+            if(CLP::tInicio == 0){
+                    CLP::tInicio =millis();
+            }
+
+        CLP::tFim += millis() - CLP::tInicio;
+        CLP::tInicio=millis();
+        return NULL;
+    }
+
+    return NULL; //------------------------------------------------------> Remova me!
+
 }
 
