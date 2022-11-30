@@ -5,14 +5,14 @@ int csv::posicaoMudar=0;
 
 void csv::iSD()
 {
-    digitalWrite(10,HIGH);
-    digitalWrite(4,LOW);
+    // digitalWrite(10,HIGH);
+    // digitalWrite(4,LOW);
 }
 
 void csv::fSD()
 {
-    digitalWrite(10,LOW);
-    digitalWrite(4,HIGH);
+    // digitalWrite(10,LOW);
+    // digitalWrite(4,HIGH);
 }
 
 void csv::ls(char *diretorio)

@@ -12,15 +12,15 @@ static char serverName[]="adm.duo.com.br";
 
 void cloud::logicaNuvem(char *arquivoEnviando,EthernetClient *ethClient,bool *precisaOutroArquivo,char *nomeCSV,int numSerie)
 {
-    Serial.println("Procurando dados para enviar para a DUO...");
+    //Serial.println("Procurando dados para enviar para a DUO...");
     char *nomePonteiro=(char *) malloc(13*sizeof(char));
     snprintf(nomePonteiro,13*sizeof(char),"X%s",arquivoEnviando);
-    Serial.print("Arquivo enviando ");
-    Serial.print(arquivoEnviando);
-    Serial.print("\n");
-    Serial.print("Arquivo ponteiro ");
-    Serial.print(nomePonteiro);
-    Serial.print("\n");
+    /* Serial.print("Arquivo enviando "); */
+    /* Serial.print(arquivoEnviando); */
+    /* Serial.print("\n"); */
+    /* Serial.print("Arquivo ponteiro "); */
+    /* Serial.print(nomePonteiro); */
+    /* Serial.print("\n"); */
 
     File file;
     if(!SD.exists(nomePonteiro))
@@ -102,6 +102,8 @@ void cloud::logicaNuvem(char *arquivoEnviando,EthernetClient *ethClient,bool *pr
             int size=17;
             char *json=(char *) malloc(size*sizeof(char));
             snprintf(json,size*sizeof(char),"GET /test?raw=%d",numSerie);
+            Serial.println(numSerie);
+            Serial.println("Atualizando a hora");
             sendGET(json,ethClient);
             free(json);
 
@@ -129,9 +131,9 @@ boolean cloud::sendGET(char *data, EthernetClient *client){
     int timer;
     char compareMe[9]="INSERIDO\0";
     int match = 0;
-    char server[]="23.239.10.90";
+    char servidor[]="23.239.10.90";
 
-    if (client->connect(server,8080))
+    if (client->connect(servidor,8080))
     { 
         client->setTimeout(10000);
         Serial.println("Conectado");
@@ -145,21 +147,21 @@ boolean cloud::sendGET(char *data, EthernetClient *client){
         client->println();
         Serial.println("Enviado, aguardando resposta.");
     }else{
-            return;
+            return false;
     }
 
         timer = 0;
 
         while(!client->available()){
                 Serial.print(".");
-                delay(1);
+                delay(100);
                 timer++;
-                if(timer == 50000){
-                        return;
+                if(timer == 50){
+                        return false;
                 }
         }
         
-        Serial.print("\n");
+        /* Serial.print("\n"); */
         
 
         while(client->available() && client->connected() && match<8){
@@ -178,7 +180,7 @@ boolean cloud::sendGET(char *data, EthernetClient *client){
         client->stop();
         
         Serial.println("MATCH");
-        Serial.println(match);
+        /* Serial.println(match); */
         if(match == 8){
                 return true;
         }else{

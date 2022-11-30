@@ -12,20 +12,17 @@ int passo;
 bool shielded;
 bool precisaOutroArquivo;
 
-
 EthernetClient ethClient;
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 IPAddress ip(192, 168, 1, 177);
 
-
 ModbusTCPClient modbusTCPClient(ethClient);
 int counter;
 int numE;
-int numSerie=22;
+int numSerie=7;
 
 void iniciarEthernet()
 {
-
     Ethernet.init(10);
     delay(1000);
     Ethernet.begin(mac, ip);
@@ -41,15 +38,16 @@ void iniciarEthernet()
     }
 }
 
-
 void setup()
 {
     pinMode(10,OUTPUT);
     pinMode(4,OUTPUT);
+    digitalWrite(10,HIGH);
+    digitalWrite(4,HIGH);
+    delay(5000);
+    //pinMode(53,OUTPUT);
     SD.begin(4);
 
-    digitalWrite(10,LOW);
-    digitalWrite(4,HIGH);
 
     Serial.begin(9600);
     precisaOutroArquivo=true;
@@ -57,9 +55,7 @@ void setup()
     passo=-1;
     counter==0;
     numE=0;
-
 }
-
 
 void loop()
 {
@@ -84,6 +80,8 @@ void loop()
     Serial.print(FreeRam());
     Serial.print("\n");
 
+    digitalWrite(10,HIGH);
+    digitalWrite(4,LOW);
 
     cloud::logicaNuvem(nomeCSV,&ethClient,&precisaOutroArquivo,nomeCSV,numSerie);
 

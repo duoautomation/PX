@@ -6,6 +6,8 @@ int CLP::counter = 0;
 bool CLP::first = false;
 unsigned long CLP::tFim = 0;
 unsigned long CLP::tInicio = 0;
+int CLP::vEspecial = 0;
+int CLP::chapiscando = 0;
 
 struct CLP::Dados
 {
@@ -160,14 +162,15 @@ void CLP::ler_clp(struct Dados *dados, ModbusTCPClient *modbusTCPClient)
     dados->minuto = modbusTCPClient->holdingRegisterRead(0x11F8);//2 digitos
     dados->segundo = modbusTCPClient->holdingRegisterRead(0x11F9);//2 digitos
     dados->receita = modbusTCPClient->holdingRegisterRead(0x11FA);//1digito
-    //dados->num_e = modbusTCPClient->holdingRegisterRead(0x11FC);
-    dados->num_e = modbusTCPClient->holdingRegisterRead(0x9772); //----------------> Descomentar essa linha e comentar a superior.
+    dados->num_e = modbusTCPClient->holdingRegisterRead(0x987C); //----------------> Descomentar essa linha e comentar a superior.
 
+    //Em simulacao com o fantoche substituir a linha anterior por essa abaixo
+    //dados->num_e = modbusTCPClient->holdingRegisterRead(0x11FC);
     if(first==false){
         znap = malloc(sizeof(struct Dados));
         dados_cp(dados, znap);
         first = true;
-        Serial.println("CLP inicializado!");
+        CLP::tInicio = millis();
         delay(5000);
     }
 
@@ -187,32 +190,49 @@ int comparar_dados(struct CLP::Dados *velho, struct CLP::Dados *novo,int *passo)
 {
     //Retornamos -2 quando não temos certeza se o CLP está conectado. --> Implementado
     //Retornamos -1 se está em basico
-    //Retornamos 0 se nada ocorreu ---> Implementado
+    //Retornamos 0 se iniciou o chapisco ---> Implementado
     //Retornamos 1 se houve queima de eletrodo. --> Implementado
-
-    //Vemos se estamos conectados
-    if(novo->operando==-1) {
-        Serial.println("1");
-        return -2;
-    }
-
-    if(novo->operando == 1){
-            CLP::tInicio == 0;
+    //Retornamos 2 se precisa só contar tempo
+    //Retornamos 3 se não há nada que fazer
+    
+    if(CLP::chapiscando == 2){
+        if(novo->pneumatico == 1 && novo->operando == 0){
+            CLP::chapiscando = 0;
+            delay(2000);
+            return 2;
+        }else{
             return -1;
+        }
     }
 
+    if(novo->pneumatico == -1) { return -2; }
 
-    if(novo->num_e != velho->num_e && velho->pneumatico == 1){
-            return 1;
+    else if( novo->operando == 1 && CLP::chapiscando == 0){ return -1; }
+    else if( novo->operando == 1 && CLP::chapiscando == 1){ CLP::chapiscando = 2; return -1; }
+    CLP::chapiscando = 1;
+
+    if( novo->pneumatico == 1 && velho->pneumatico == 0){
+        return 0;
+    }
+    
+    else if( novo->pneumatico == 0 && velho->pneumatico == 1){
+        if((novo->vale == 0 || novo->vale == novo->t_vales) && CLP::vEspecial == 0){
+            CLP::vEspecial++;
+            return 2; 
+        }
+
+        CLP::vEspecial = 0;
+        return 1;
     }
 
-    if(novo->num_e == velho->num_e && novo->pneumatico == 1){
-            return 0;
+    else if (novo->pneumatico == 1 && velho->pneumatico == 1 ){
+        return 2;
     }
 
+    else 
+        return 3;
 
 }
-
 
 char *CLP::contar(ModbusTCPClient *modbusTCPClient,char *nomeCSV,int *passo,int numSerie)
 {
@@ -224,34 +244,39 @@ char *CLP::contar(ModbusTCPClient *modbusTCPClient,char *nomeCSV,int *passo,int 
     modbusTCPClient->begin(server,502);
  
     ler_clp(&dados,modbusTCPClient);
+    dados.num_serie = numSerie;
 
     modbusTCPClient->stop();
 
     int resultado = comparar_dados(znap, &dados, passo);
     dados_cp(&dados, znap);
-    printar_dados(znap);
+    printar_dados(&dados);
     
 
     if(resultado == -2 || resultado == -1){
         return NULL;
     }
 
+
+    else if (resultado == 2){
+        CLP::tFim += millis() - CLP::tInicio;
+        CLP::tInicio = millis();
+        Serial.print("Kelmon -------->");
+        Serial.print(CLP::tFim);
+        Serial.print("\n");
+        return NULL;
+    }
+
     else if (resultado == 1){
             dados.min_t = tFim/1000;
-            dados.num_serie = numSerie;
-            Serial.println("Novo Eletrodo");
-            Serial.println(formatar_dados(&dados));
+            Serial.println("Novo Eletrodo"); 
+            CLP::tInicio = 0;
             return formatar_dados(&dados);
     }
 
     else if(resultado == 0){
-
-            if(CLP::tInicio == 0){
-                    CLP::tInicio =millis();
-            }
-
-        CLP::tFim += millis() - CLP::tInicio;
-        CLP::tInicio=millis();
+        CLP::tFim = 0;
+        CLP::tInicio = millis();   
         return NULL;
     }
 

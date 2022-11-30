@@ -3,14 +3,6 @@
 #include<SD.h>
 #include <SPI.h>
 
-//AUTOR: PEDRO
-//Esta classe cria e editar arquivos .csv
-//O construtor cria um novo arquivo
-//Um método retorna um arquivo existente
-//O destrutor fecha o arquivo
-//Um método escreve
-//Um método lê arquivo inteiro
-//Um método add linha
 class csv
 {
 public:

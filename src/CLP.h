@@ -13,9 +13,11 @@ class CLP
 
         static int gNumE,counter, pneumaticoAntes,eletrodosQueimados;
         static bool first;
+        static int chapiscando;
         struct Dados;
         static unsigned long tInicio;//
         static unsigned long tFim;//
+        static int vEspecial;//
         static char *formatar_dados(struct Dados *dados);
         static char *contar(ModbusTCPClient *modbusTCPClient,char *nomeCSV,int *passo,int numSerie);
         static void Break(String texto);
