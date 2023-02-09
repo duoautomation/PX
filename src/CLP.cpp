@@ -163,6 +163,9 @@ void CLP::ler_clp(struct Dados *dados, ModbusTCPClient *modbusTCPClient)
     dados->segundo = modbusTCPClient->holdingRegisterRead(0x11F9);//2 digitos
     dados->receita = modbusTCPClient->holdingRegisterRead(0x11FA);//1digito
     dados->num_e = modbusTCPClient->holdingRegisterRead(0x987C); //----------------> Descomentar essa linha e comentar a superior.
+    modbusTCPClient->coilWrite(0x837, 1);
+    modbusTCPClient->holdingRegisterWrite(0x1209, 120);
+    modbusTCPClient->holdingRegisterWrite(0x120b, 0);
 
     //Em simulacao com o fantoche substituir a linha anterior por essa abaixo
     //dados->num_e = modbusTCPClient->holdingRegisterRead(0x11FC);

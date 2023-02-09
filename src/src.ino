@@ -19,7 +19,7 @@ IPAddress ip(192, 168, 1, 177);
 ModbusTCPClient modbusTCPClient(ethClient);
 int counter;
 int numE;
-int numSerie=7;
+int numSerie=23;
 
 void iniciarEthernet()
 {
