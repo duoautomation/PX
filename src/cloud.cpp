@@ -1,7 +1,45 @@
 #include "cloud.h"
 
+int cloud::numero_falhas = 0;
+
+int cloud::tamanho_pacote(int linhas_csv, int linhas_ponteiro){
+
+   // Se o número de falhas for maior que 5 retornamos -1
+   if(cloud::numero_falhas > 5){
+    return -1;
+   }
+
+   int falta_enviar = linhas_csv - linhas_ponteiro; 
+
+
+   // Se o pacote é muito pequeno, 
+   // Tentamos 2 vezes
+   if(falta_enviar < 10 && numero_falhas > 2){
+    return -1;
+   }
+
+   // Se o número de falhas for menor que 3, mandamos o máximo número de linhas possível
+   // com um máximo de 100
+   if(cloud::numero_falhas < 3 ){
+     if(falta_enviar < 100){
+        return falta_enviar; 
+     }else{
+        return 100;
+     }
+   }
+
+   // Se o número de falhas for maior que 3
+   // Limitamos a 10
+    return 10;
+}
 
 String cloud::formatarJSON(String data)
+{
+    String retorneMe="{\"raw\":\""+data+"\"}";
+    return retorneMe;
+}
+
+String cloud::formatarListaJSON(String data)
 {
     String retorneMe="{\"raw\":\""+data+"\"}";
     return retorneMe;
@@ -10,23 +48,13 @@ String cloud::formatarJSON(String data)
 String cloud::linhaAguardando="";
 static char serverName[]="adm.duo.com.br";
 
-void cloud::logicaNuvem(char *arquivoEnviando,EthernetClient *ethClient,bool *precisaOutroArquivo,char *nomeCSV,int numSerie)
-{
-    //Serial.println("Procurando dados para enviar para a DUO...");
-    char *nomePonteiro=(char *) malloc(13*sizeof(char));
-    snprintf(nomePonteiro,13*sizeof(char),"X%s",arquivoEnviando);
-    /* Serial.print("Arquivo enviando "); */
-    /* Serial.print(arquivoEnviando); */
-    /* Serial.print("\n"); */
-    /* Serial.print("Arquivo ponteiro "); */
-    /* Serial.print(nomePonteiro); */
-    /* Serial.print("\n"); */
-
+bool cloud::verificar_arquivos(){
+    int count = 0;
     File file;
-    if(!SD.exists(nomePonteiro))
+    if(!SD.exists(cloud::nome_ponteiro))
     {
-        Serial.println(nomePonteiro);
-        file= SD.open(nomePonteiro,FILE_WRITE);
+        Serial.println("Criando arquivo de registro...");
+        file= SD.open(cloud::nome_ponteiro,FILE_WRITE);
         if(file)
         {
             file.close();
@@ -34,82 +62,237 @@ void cloud::logicaNuvem(char *arquivoEnviando,EthernetClient *ethClient,bool *pr
         file.close();
     }
 
-    file=SD.open(arquivoEnviando,FILE_READ);
-    int linhasCSV = csv::contarLinhas(&file);
+    if(!SD.exists(cloud::arquivo_enviando)){
+        Serial.println("Criando arquivo de armazenamento...");
+        file = SD.open(cloud::arquivo_enviando, FILE_WRITE);
+        if(file){
+            file.close();
+        }
+
+        file.close();
+    }
+
+    if(!SD.exists("UA.S")){
+        Serial.println("Criando arquivo de horas...");
+        file = SD.open("UA.S", FILE_WRITE);
+        if(file){
+            file.write("2023;04;28;15;00;00\n");
+            file.close();
+        }
+
+        file.close();
+    }
+
+    if(SD.exists("UA.S") && SD.exists(cloud::nome_ponteiro) && SD.exists(cloud::arquivo_enviando)){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+struct tm cloud::ler_ua(){
+    File file;
+    file = SD.open("UA.S", FILE_READ); 
+    char *dado_cru = csv::lerLinhaN(&file, 0);
     file.close();
 
-    file=SD.open(nomePonteiro,FILE_READ);
-    int linhasPonteiro = csv::contarLinhas(&file);
-    file.close();
 
-    Serial.print("Linhas_P---------->");
-    Serial.print(linhasPonteiro);
-    Serial.print("\n");
-    Serial.print("Linhas_CSV---------->");
-    Serial.print(linhasCSV);
-    Serial.print("\n");
+    if(strlen(dado_cru)<10){
+        csv::escrever("UA.S", "2023;04;29;15;00;00");
+        file = SD.open("UA.S", FILE_READ); 
+        csv::ler(&file);
+        Serial.println("Criado.");
+        return;
+     }
 
-    Serial.print("|---->");
-    Serial.print(strcmp(nomeCSV,arquivoEnviando));
-    Serial.print("\n");
+     char *tratamento = strtok(dado_cru, ";");
+     int parsed[7];
+     int i = 0;
 
-    if(linhasCSV!=-1 || linhasPonteiro!=-1)
+    while (tratamento !=NULL){
+        parsed[i] = atoi(tratamento);
+        tratamento = strtok(NULL, ";");
+        i++;
+     }
+
+     struct tm retorne_me = {0};
+
+
+    retorne_me.tm_year = parsed[0]-1900;
+    retorne_me.tm_mon = parsed[1]-1;
+    retorne_me.tm_mday = parsed[2];
+
+    retorne_me.tm_hour = parsed[3];
+    retorne_me.tm_min = parsed[4];
+    retorne_me.tm_sec = parsed[5];
+
+    return retorne_me;
+}
+
+bool cloud::esta_na_hora(){ 
+    time_t t1 = mktime(&cloud::ua);
+    time_t t2 = mktime(&CLP::ua);
+
+    double tempo_passado = difftime(t2, t1);
+    Serial.print("==========> tp: "); Serial.print(tempo_passado);Serial.print("\n");
+
+    if(tempo_passado >= cloud::intervalo_segundos){
+        return true;
+    }
+
+    return false;
+}
+
+//Lê até 100 linhas e retorna um JSON array
+char *cloud::preparar_pacote(int inicio, int t_linhas){
+    int limit = 10;
+    int linha_atual = 0;
+    int linhas_lidas = 0;
+
+    char *retorne_me = (char*)malloc(2*sizeof(char));
+    retorne_me[0] = '[';
+    retorne_me[1] = '\0';
+
+    bool tem_aspa = false;
+
+    char atual;
+    int t_json = 2;
+
+    File myFile = SD.open(cloud::arquivo_enviando, FILE_READ);
+    if (myFile)
     {
-        if(linhasCSV>linhasPonteiro)
+        char caractere;
+        while (myFile.available())
         {
-            //Pegamos no ponteiro a linha a enviar
-            file= SD.open(arquivoEnviando,FILE_READ);
-            char *linha = csv::lerLinhaN(&file,linhasPonteiro);
-            file.close();//Fechar arquivo
-            Serial.print("Linha enviando--------->");
-            Serial.print(linha);
-            Serial.print("\n");
-            int size=strlen(linha);
-            if(size>0)
+            caractere = myFile.read();
+            if(caractere=='\n')
             {
-                size=size+20;
-                char *json =(char *) malloc(size*sizeof(char));
-                /* snprintf(json,size*sizeof(char),"{\"raw\":\"%s\"}",linha); */
-                snprintf(json,size*sizeof(char),"GET /test?raw=%s",linha);
+                linha_atual++;
+                continue;
+            }
 
-                Serial.println("************************************************");
-                Serial.println(json);
-                Serial.println("************************************************");
-                Serial.print("Ponteiro---->");
-                Serial.print(nomePonteiro);
-                Serial.print("\n");
-
-                //bool result = sendPOST(json,ethClient);
-                bool result = sendGET(json, ethClient);
-                free(json);
-
-                if(result)
-                {
-                    Serial.println("Enviado");
-                    csv::escrever(nomePonteiro,"P");
+            if(linha_atual >= inicio){
+                if(t_json==2){
+                    t_json++;
+                    retorne_me =(char *)realloc(retorne_me,t_json*sizeof(char));
+                    retorne_me[t_json-1]='\0';
+                    retorne_me[t_json-2]='"';
                 }
-                else
-                {
-                    Serial.println("Erro HTTP");
+
+             if(tem_aspa == true){
+                     t_json++;
+                    retorne_me =(char *)realloc(retorne_me,t_json*sizeof(char));
+                    retorne_me[t_json-1]='\0';
+                    retorne_me[t_json-2]='"';
+                    tem_aspa = false;
                 }
+
+                 if((int)caractere==13 || caractere=='\n')
+                {
+                    caractere = ',';
+                    linhas_lidas++;
+                    if(linhas_lidas == limit || linha_atual == t_linhas-1){
+                        break;
+                    }
+
+                    t_json++;
+                    retorne_me =(char *)realloc(retorne_me,t_json*sizeof(char));
+                    retorne_me[t_json-1]='\0';
+                    retorne_me[t_json-2]='"';
+
+                    tem_aspa = true;
+                }
+
+               
+                t_json++;
+                retorne_me =(char *)realloc(retorne_me,t_json*sizeof(char));
+                retorne_me[t_json-1]='\0';
+                retorne_me[t_json-2]=caractere;
 
             }
-            free(linha);
         }
-        else
-        {
-            //Fazemos um POST simples só para informar ao servidor que está conectado
-            int size=24;
-            char *json=(char *) malloc(size*sizeof(char));
-            snprintf(json,size*sizeof(char),"GET /test?raw=%d&SD=%d",numSerie,linhasCSV);
-            Serial.println(numSerie);
-            Serial.println("Atualizando a hora");
-            sendGET(json,ethClient);
-            free(json);
+
+        myFile.close();
+
+    }
+        cloud::linhas_enviando = linhas_lidas;
+        t_json = t_json + 2;
+
+        retorne_me =(char *)realloc(retorne_me,t_json*sizeof(char)); 
+        retorne_me[t_json-1]='\0';
+        retorne_me[t_json-2]=']';
+        retorne_me[t_json-3]='"';
+
+    return retorne_me;
+}
+
+
+bool ticar_linhas(int num_linhas){
+    return false;
+}
+
+void cloud::atualizar(){
+    //Determinar o tamanho atual da fila
+    int db = csv::contarLinhas(cloud::arquivo_enviando);
+    int ponteiro = csv::contarLinhas(cloud::nome_ponteiro);
+
+    int t_pacote = tamanho_pacote(db, ponteiro);
+    Serial.print("Tamanho do pacote a enviar: ");Serial.print(t_pacote);Serial.print("\n");
+    if(t_pacote == 0){
+        // Atualizar o arquivo UA.S com o timestamp atual não tem nada para fazer
+        SD.remove("UA.S");
+        File file = SD.open("UA.S", FILE_WRITE);
+        char t_atual[22];
+        const *n_ua = strftime(t_atual, 22,"%Y;%m;%d;%H;%M;%S\n", &CLP::ua);
+        file.write(n_ua);
+
+        return;
+    }
+
+    Serial.println("Preparando para atualizar...");
+    char *json = cloud::preparar_pacote(ponteiro, db); 
+    bool enviou = sendPOST(json,cloud::ethClient);
+
+    if(enviou){
+        Serial.print("Linhas enviando-->");Serial.print(cloud::linhas_enviando);Serial.print("\n");
+        while(cloud::linhas_enviando != 0){
+            csv::escrever(cloud::nome_ponteiro, "X");
+            cloud::linhas_enviando--;
         }
     }
 
-    free(nomePonteiro);
+    free(json);
+    Serial.print("Dados: ");Serial.print(db);Serial.print("\n");
+    Serial.print("Registro: ");Serial.print(ponteiro);Serial.print("\n");
+
+    //preparar o pacote com as linhas a enviar
+    //converter o pacote para json - gravar em variavel global
+}
+
+void cloud::logicaNuvem(EthernetClient *ethClient,int numSerie){
+    if(!cloud::arquivos_ok){
+        cloud::arquivos_ok = cloud::verificar_arquivos();
+        Serial.print("Status arquivos: ");
+        Serial.print(cloud::arquivos_ok);
+        Serial.println("\n");
+
+        return;
+    }
+
+    if(cloud::ua.tm_year == 0){
+        cloud::ua = cloud::ler_ua();
+        Serial.println("Lendo a ultima atualizacao.");
+        Serial.println("Vou retornar!");
+        return;
+    }
+
+    if(cloud::esta_na_hora()){
+        cloud::atualizar();
+        return;
+    }else{
+        Serial.println("Nao esta na hora de atualizar");
+        return;
+    }
 }
 
 bool cloud::marcarPonteiro(SDLib::File *ponteiro)
@@ -125,68 +308,6 @@ bool cloud::marcarPonteiro(SDLib::File *ponteiro)
 }
 
 
-boolean cloud::sendGET(char *data, EthernetClient *client){
-
-    int timer;
-    char compareMe[9]="INSERIDO\0";
-    int match = 0;
-    char servidor[]="23.239.10.90";
-
-    if (client->connect(servidor,8080))
-    { 
-        client->setTimeout(10000);
-        Serial.println("Conectado");
-        client->println(data);
-        Serial.println(data);
-        client->println("Host: adm.duo.com.br");
-        Serial.println("Host: adm.duo.com.br"); 
-        client->println("Connection: close");
-        Serial.println("Connection: close");
-         
-        client->println();
-        Serial.println("Enviado, aguardando resposta.");
-    }else{
-            return false;
-    }
-
-        timer = 0;
-
-        while(!client->available()){
-                Serial.print(".");
-                delay(100);
-                timer++;
-                if(timer == 50){
-                        return false;
-                }
-        }
-        
-        /* Serial.print("\n"); */
-        
-
-        while(client->available() && client->connected() && match<8){
-
-                char c = client->read(); 
-                Serial.print(c); 
-                
-                if(compareMe[match] == c){
-                        match++;
-                }else{
-                        match = 0;
-                }
-        }
-
-        client->flush();
-        client->stop();
-        
-        Serial.println("MATCH");
-        /* Serial.println(match); */
-        if(match == 8){
-                return true;
-        }else{
-                return false;
-        }
-}
-
 boolean cloud::sendPOST(char *data,EthernetClient *ethClient)
 {
     ethClient->setTimeout(15000);
@@ -199,15 +320,15 @@ boolean cloud::sendPOST(char *data,EthernetClient *ethClient)
 
     if (ethClient->connect(serverName,8080))
     {
-        Serial.println("connected");
-        ethClient->println("POST/ HTTP/1.1");
+        Serial.println("Conectado !!");
+        ethClient->println("POST /test HTTP/1.1");
         ethClient->println("Host: 23.239.10.90");
         ethClient->println("Content-Type: application/json");
-        ethClient->print("Content-Length:"); 
-        ethClient->print(strlen(data));
-        ethClient->print("\n");
-        ethClient->println("");
+        ethClient->print("Content-Length: "); 
+        ethClient->println(strlen(data)+2);
+        ethClient->println();
         ethClient->println(data);
+        ethClient->println();
         ethClient->println("Connection: close");
         ethClient->println();
     }
@@ -226,16 +347,16 @@ boolean cloud::sendPOST(char *data,EthernetClient *ethClient)
             delay(1);
     }
 
+    Serial.println("Conectado Aguardado dados...");
     while (ethClient->connected() && ethClient->available())
     {
-        Serial.println("Conectado Aguardado dados...");
 
         char c = ethClient->read();
         size++;
         if(size<300)
         {
             readString=(char *) realloc(readString,size*sizeof(char));
-            Serial.println(c);
+            //Serial.println(c);
             readString[size-1]='\0';
             readString[size-2]=c;
 

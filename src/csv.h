@@ -20,10 +20,9 @@ public:
     static char *arquivoAguardando(char *diretorio,char *nomeArquivo);
     static char *lerLinhaN(SDLib::File *file,int lineNumber);
     static uint8_t rm(String file);
-    static int contarLinhas(File *myFile);
+    static int contarLinhas(char *nome_arquivo);
 
     static void copy(char *origem, char *destino);
     static void move(char *origem, char *destino);
-
 
 };

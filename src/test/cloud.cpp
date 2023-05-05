@@ -138,7 +138,7 @@ boolean cloud::sendPOST(char *data,EthernetClient *ethClient)
     {
         Serial.println("connected");
         ethClient->println("POST / HTTP/1.1");
-        ethClient->println("Host: adm.duo.com.br");
+        ethClient->println("Host: adm.duo.com.br:8080");
         ethClient->println("Content-Type:application/json");
         ethClient->print("Content-Length:");
         ethClient->print(strlen(data));
@@ -179,12 +179,12 @@ boolean cloud::sendPOST(char *data,EthernetClient *ethClient)
                 if(c==compareMe[i])
                 {
                     returnMe=true;
-                    Serial.println("*****************************");
-                    Serial.print("c->");
-                    Serial.print(c);
-                    Serial.print("comparado com ");
-                    Serial.print(compareMe[i]);
-                    Serial.print("\n");
+                    //Serial.println("*****************************");
+                    //Serial.print("c->");
+                    //Serial.print(c);
+                    //Serial.print("comparado com ");
+                    //Serial.print(compareMe[i]);
+                    //Serial.print("\n");
                     continue;
                 }
                 else

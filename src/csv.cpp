@@ -231,22 +231,24 @@ uint8_t csv::rm(String file)
     }
 }
 
-int csv::contarLinhas(File *myFile)
+int csv::contarLinhas(char *nome_arquivo)
 {
     iSD();
+    File myFile = SD.open(nome_arquivo);
     int n=0;
     if (myFile)
     {
         char caractere;
-        while (myFile->available())
+        while (myFile.available())
         {
-            caractere=myFile->read();
+            caractere=myFile.read();
             if(caractere=='\n')
             {
                 n++;
             }
         }
         fSD();
+        myFile.close();
         return n;
     }
     else

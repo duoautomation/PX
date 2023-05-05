@@ -13,13 +13,14 @@ bool shielded;
 bool precisaOutroArquivo;
 
 EthernetClient ethClient;
-byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
+//byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
+byte mac[] = {0x70, 0xB3, 0xD5, 0x0A, 0xCB, 0x85};
 IPAddress ip(192, 168, 1, 177);
 
 ModbusTCPClient modbusTCPClient(ethClient);
 int counter;
 int numE;
-int numSerie=23;
+int numSerie = 25;
 
 void iniciarEthernet()
 {
@@ -40,27 +41,39 @@ void iniciarEthernet()
 
 void setup()
 {
+    pinMode(35, INPUT); // Inserir registro qualquer
+    pinMode(36, INPUT); // Ticar registro qualquer
     pinMode(10,OUTPUT);
     pinMode(4,OUTPUT);
     digitalWrite(10,HIGH);
     digitalWrite(4,HIGH);
     delay(5000);
     //pinMode(53,OUTPUT);
-    SD.begin(4);
-
-
+    SD.begin(4); 
+    SD.remove("UA.S");
     Serial.begin(9600);
     precisaOutroArquivo=true;
     iniciarEthernet();
     passo=-1;
     counter==0;
     numE=0;
+
+    cloud::ethClient = &ethClient;
+
+}
+
+void _loop(){
+    Serial.println("TESTE");
+    // char *json = cloud::preparar_pacote(10);
+    // //char *json = "{\"pedro\":1}";
+    // cloud::sendPOST(json, &ethClient);
+    // free(json);
+    delay(10000); 
 }
 
 void loop()
 {
     CLP::Break("INICIO");
-    //nomeCSV=(char *) malloc(9*sizeof(char));
     Serial.print("--> Eletrodos Queimados: ");
     Serial.print(numE);
     Serial.print("\n");
@@ -76,17 +89,38 @@ void loop()
     }
 
     free(contagem);
-    Serial.print("Memoria------>");
+    Serial.print("--> Memoria: ");
     Serial.print(FreeRam());
     Serial.print("\n");
 
-    digitalWrite(10,HIGH);
-    digitalWrite(4,LOW);
+    // digitalWrite(10,HIGH);
+    // digitalWrite(4,LOW);
 
-    cloud::logicaNuvem(nomeCSV,&ethClient,&precisaOutroArquivo,nomeCSV,numSerie);
+    char ts[22]; 
+    strftime(ts, 22,"%Y/%m/%d %H:%M:%S", &CLP::ua);
+    Serial.print("Hora atual: ");Serial.print(ts);Serial.print("\n");
 
+    cloud::logicaNuvem(&ethClient,&numSerie);
     counter++;
 
-    delay(1000);
-    CLP::Break("FIM");
+    //Opcoes
+
+    int reg_false = digitalRead(35);
+    int tic = digitalRead(36);
+
+    if(reg_false == 1){
+        Serial.print("Inserindo...");
+        char t_falso[22]; 
+        strftime(t_falso, 22,"%Y;%m;%d;%H;%M;%S;", &CLP::ua);
+        char* d_falso = strcat(t_falso,"240;01;1;18913;6;1;120;1");
+        Serial.println(d_falso);
+        csv::escrever(cloud::arquivo_enviando, d_falso);
+        numE++;
+    }
+
+    if(tic == 1){
+        Serial.print("Ticando...");
+        csv::escrever(cloud::nome_ponteiro, "X");
+    }
+
 }

@@ -1,7 +1,8 @@
 {
-  "cpu": {
-    "fqbn": "arduino:avr:mega",
-    "name": "Arduino Mega or Mega 2560",
-    "port": "serial://COM12"
-  }
+"cpu":
+ {
+"fqbn": "arduino:avr:mega",
+"name": "Arduino Mega or Mega 2560",
+"port": "serial://COM11"
+}
 }

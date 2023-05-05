@@ -35,13 +35,13 @@ struct CLP::Dados
 
 struct CLP::Dados *znap = NULL;
 
-void CLP::Break(String texto)
+void CLP::Break(char *texto)
 {
 
-    for(int i=0; i<100-texto.length(); i++)
+    for(int i=0; i<100-strlen(texto); i++)
     {
 
-        if(i==(int)(100-texto.length())/2)
+        if(i==(int)(100-strlen(texto))/2)
         {
             Serial.print(texto);
             continue;
@@ -167,6 +167,24 @@ void CLP::ler_clp(struct Dados *dados, ModbusTCPClient *modbusTCPClient)
     modbusTCPClient->holdingRegisterWrite(0x1209, 120);
     modbusTCPClient->holdingRegisterWrite(0x120b, 0);
 
+    if(dados->ano == -1){
+        Serial.println("O CLP esta desconectado.");
+        
+    }
+    
+    if(dados->ano == 0){
+        Serial.println("--> A IHM precisa ser atualizada!");
+    }
+
+    struct tm dt1 = {0};
+    dt1.tm_year = 2023-dados->ano;
+    dt1.tm_mon = 4 -dados->mes; //0-11
+    dt1.tm_mday = dados->dia;
+    dt1.tm_hour = dados->hora; //0-23
+    dt1.tm_min = dados->minuto;
+    dt1.tm_sec = dados->segundo;
+
+    CLP::ua = dt1; 
     //Em simulacao com o fantoche substituir a linha anterior por essa abaixo
     //dados->num_e = modbusTCPClient->holdingRegisterRead(0x11FC);
     if(first==false){
@@ -253,7 +271,7 @@ char *CLP::contar(ModbusTCPClient *modbusTCPClient,char *nomeCSV,int *passo,int 
 
     int resultado = comparar_dados(znap, &dados, passo);
     dados_cp(&dados, znap);
-    printar_dados(&dados);
+    //printar_dados(&dados);
     
 
     if(resultado == -2 || resultado == -1){
@@ -264,7 +282,6 @@ char *CLP::contar(ModbusTCPClient *modbusTCPClient,char *nomeCSV,int *passo,int 
     else if (resultado == 2){
         CLP::tFim += millis() - CLP::tInicio;
         CLP::tInicio = millis();
-        Serial.print("Kelmon -------->");
         Serial.print(CLP::tFim);
         Serial.print("\n");
         return NULL;
