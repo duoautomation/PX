@@ -20,7 +20,7 @@ IPAddress ip(192, 168, 1, 177);
 ModbusTCPClient modbusTCPClient(ethClient);
 int counter;
 int numE;
-int numSerie = 25;
+int numSerie = 120;
 
 void iniciarEthernet()
 {
@@ -50,14 +50,13 @@ void setup()
     delay(5000);
     //pinMode(53,OUTPUT);
     SD.begin(4); 
-    SD.remove("UA.S");
     Serial.begin(9600);
     precisaOutroArquivo=true;
     iniciarEthernet();
     passo=-1;
     counter==0;
     numE=0;
-
+    SD.remove("UA.S");
     cloud::ethClient = &ethClient;
 
 }

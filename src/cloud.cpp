@@ -135,6 +135,7 @@ bool cloud::esta_na_hora(){
 
     double tempo_passado = difftime(t2, t1);
     Serial.print("==========> tp: "); Serial.print(tempo_passado);Serial.print("\n");
+    Serial.print("==========> intervalo: "); Serial.print(cloud::intervalo_segundos);Serial.print("\n");
 
     if(tempo_passado >= cloud::intervalo_segundos){
         return true;
@@ -244,8 +245,8 @@ void cloud::atualizar(){
         File file = SD.open("UA.S", FILE_WRITE);
         char t_atual[22];
         const *n_ua = strftime(t_atual, 22,"%Y;%m;%d;%H;%M;%S\n", &CLP::ua);
-        file.write(n_ua);
-
+        csv::escrever("UA.S",*n_ua);
+        cloud::ua = CLP::ua;
         return;
     }
 

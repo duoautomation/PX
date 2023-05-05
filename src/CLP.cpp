@@ -177,8 +177,8 @@ void CLP::ler_clp(struct Dados *dados, ModbusTCPClient *modbusTCPClient)
     }
 
     struct tm dt1 = {0};
-    dt1.tm_year = 2023-dados->ano;
-    dt1.tm_mon = 4 -dados->mes; //0-11
+    dt1.tm_year =dados->ano - 1900;
+    dt1.tm_mon = dados->mes -1; //0-11
     dt1.tm_mday = dados->dia;
     dt1.tm_hour = dados->hora; //0-23
     dt1.tm_min = dados->minuto;

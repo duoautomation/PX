@@ -28,7 +28,7 @@ public:
     static inline char *nome_ponteiro ="XL10-10.S";
     static inline struct tm ua = {0};
     static inline int linhas_enviando = 0;
-    static inline double intervalo_segundos= 3*3600.0d; //De quanto em quanto tempo tentar atualizar
+    static inline double intervalo_segundos= 10*60.0d; //De quanto em quanto tempo tentar atualizar
     static inline int tamanho_fila = 0;
     static bool verificar_arquivos();
     static struct tm ler_ua();
