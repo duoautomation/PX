@@ -73,13 +73,9 @@ bool cloud::verificar_arquivos(){
     }
 
     if(!SD.exists("UA.S")){
-        Serial.println("Criando arquivo de horas...");
-        file = SD.open("UA.S", FILE_WRITE);
-        if(file){
-            file.write("2023;04;28;15;00;00\n");
-            file.close();
-        }
 
+         csv::escrever("UA.S", "2023;04;29;15;00;00");
+         Serial.println("Criado.");
         file.close();
     }
 
@@ -237,9 +233,12 @@ void cloud::atualizar(){
     int db = csv::contarLinhas(cloud::arquivo_enviando);
     int ponteiro = csv::contarLinhas(cloud::nome_ponteiro);
 
-    int t_pacote = tamanho_pacote(db, ponteiro);
-    Serial.print("Tamanho do pacote a enviar: ");Serial.print(t_pacote);Serial.print("\n");
-    if(t_pacote == 0){
+    if(cloud::pacote_fechado==0){
+        cloud::pacote_fechado = tamanho_pacote(db, ponteiro); 
+    }
+
+    Serial.print("Tamanho do pacote a enviar: ");Serial.print(cloud::pacote_fechado);Serial.print("\n");
+    if(cloud::pacote_fechado== 0){
         // Atualizar o arquivo UA.S com o timestamp atual não tem nada para fazer
         SD.remove("UA.S");
         File file = SD.open("UA.S", FILE_WRITE);
@@ -247,6 +246,7 @@ void cloud::atualizar(){
         const *n_ua = strftime(t_atual, 22,"%Y;%m;%d;%H;%M;%S\n", &CLP::ua);
         csv::escrever("UA.S",*n_ua);
         cloud::ua = CLP::ua;
+        file.close();
         return;
     }
 
@@ -260,6 +260,7 @@ void cloud::atualizar(){
             csv::escrever(cloud::nome_ponteiro, "X");
             cloud::linhas_enviando--;
         }
+        cloud::pacote_fechado = 0;
     }
 
     free(json);
@@ -282,7 +283,7 @@ void cloud::logicaNuvem(EthernetClient *ethClient,int numSerie){
 
     if(cloud::ua.tm_year == 0){
         cloud::ua = cloud::ler_ua();
-        Serial.println("Lendo a ultima atualizacao.");
+        Serial.println("Lendo a ultima atualizacao."); 
         Serial.println("Vou retornar!");
         return;
     }

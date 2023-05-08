@@ -22,6 +22,7 @@ public:
     static boolean sendGET(char *data, EthernetClient *client);
     static int tamanho_pacote(int linhas_csv, int linhas_ponteiro);
     //Algar
+    static inline int pacote_fechado = 0;
     static inline EthernetClient *ethClient;
     static inline bool arquivos_ok = false;
     static inline char *arquivo_enviando ="L10-10.S";
