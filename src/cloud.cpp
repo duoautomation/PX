@@ -99,13 +99,14 @@ void cloud::logicaNuvem(char *arquivoEnviando,EthernetClient *ethClient,bool *pr
         else
         {
             //Fazemos um POST simples só para informar ao servidor que está conectado
-            int size=24;
-            char *json=(char *) malloc(size*sizeof(char));
-            snprintf(json,size*sizeof(char),"GET /test?raw=%d&SD=%d",numSerie,linhasCSV);
-            Serial.println(numSerie);
-            Serial.println("Atualizando a hora");
-            sendGET(json,ethClient);
-            free(json);
+            //int size=24;
+            //char *json=(char *) malloc(size*sizeof(char));
+            //snprintf(json,size*sizeof(char),"GET /test?raw=%d&SD=%d",numSerie,linhasCSV);
+            //Serial.println(numSerie);
+            //Serial.println("Atualizando a hora");
+            //sendGET(json,ethClient);
+            //free(json);
+            Serial.println("Sem dados para enviar.");
         }
     }
 
