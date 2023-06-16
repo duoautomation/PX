@@ -208,7 +208,7 @@ int comparar_dados(struct CLP::Dados *velho, struct CLP::Dados *novo,int *passo)
         }
     }
 
-    if(novo->pneumatico == -1) { return -2; }
+    if(novo->pneumatico == -1) { CLP::CLP_ok = false; return -2; }
 
     else if( novo->operando == 1 && CLP::chapiscando == 0){ return -1; }
     else if( novo->operando == 1 && CLP::chapiscando == 1){ CLP::chapiscando = 2; return -1; }

@@ -12,6 +12,7 @@ class CLP
     public:
 
         static int gNumE,counter, pneumaticoAntes,eletrodosQueimados;
+        static inline bool CLP_ok = false;
         static bool first;
         static int chapiscando;
         struct Dados;

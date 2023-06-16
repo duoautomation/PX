@@ -49,6 +49,11 @@ void cloud::logicaNuvem(char *arquivoEnviando,EthernetClient *ethClient,bool *pr
     Serial.print(linhasCSV);
     Serial.print("\n");
 
+    if(linhasCSV >= 0){
+        cloud::sd_ok = true;
+    }else{
+        cloud::sd_ok = false;
+    }
     Serial.print("|---->");
     Serial.print(strcmp(nomeCSV,arquivoEnviando));
     Serial.print("\n");
@@ -182,6 +187,7 @@ boolean cloud::sendGET(char *data, EthernetClient *client){
         Serial.println("MATCH");
         /* Serial.println(match); */
         if(match == 8){
+                cloud::internet_ok = true;
                 return true;
         }else{
                 return false;

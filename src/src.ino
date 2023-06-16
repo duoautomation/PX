@@ -90,3 +90,42 @@ void loop()
     delay(1000);
     CLP::Break("FIM");
 }
+void servir_post(EthernetClient client){
+
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: text/html");
+    client.println("Connection: close");
+    client.println();
+
+    File webFile = SD.open(arquivoEnviando);        // open web page file
+    if (webFile) {
+    while(webFile.available()) {
+        client.write(webFile.read()); // send web page to client
+    }
+    webFile.close();
+}
+}
+
+void printarHTML(EthernetClient client){
+
+          // send a standard http response header
+          client.println("HTTP/1.1 200 OK");
+          client.println("Content-Type: text/html");
+          client.println("Connection: close");  // the connection will be closed after completion of the response
+          //client.println("Refresh: 5");  // refresh the page automatically every 5 sec
+          client.println();
+          client.println("<!DOCTYPE HTML>");
+          client.println("<html>");
+          client.println("<center> DUO AUTOMATION</center>");
+          client.println("Status SD: ");
+          client.println(cloud::sd_ok);
+          client.println("<br>");
+          client.println("Status CLP: ");
+          client.println(CLP::CLP_ok);
+          client.println("<br>");
+          client.println("Status Internet: ");
+          client.println(cloud::internet_ok);
+          client.println("<br>");
+          client.println("<br>");
+          client.println("</html>");
+}
