@@ -8,6 +8,7 @@ class cloud
 {
 public:
     static inline bool internet_ok = false;
+    static inline bool first = false;
     static inline bool sd_ok = false;
     static String linhaAguardando;
     static char *nomeCSV;
