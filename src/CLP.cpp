@@ -257,6 +257,7 @@ char *CLP::contar(ModbusTCPClient *modbusTCPClient,char *nomeCSV,int *passo,int 
     
 
     if(resultado == -2 || resultado == -1){
+        CLP::tInicio= millis();
         return NULL;
     }
 
