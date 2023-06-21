@@ -10,8 +10,39 @@ String cloud::formatarJSON(String data)
 String cloud::linhaAguardando="";
 static char serverName[]="adm.duo.com.br";
 
+boolean cloud::verificar_arquivos(){
+    int count = 0;
+    if(!SD.exists(cloud::nome_ponteiro))
+    {
+        csv::escrever(cloud::nome_ponteiro, "X");
+        Serial.println("Criando arquivo de registro...");
+    }
+
+    if(!SD.exists(cloud::arquivo_enviando)){
+        Serial.println("Criando arquivo de armazenamento...");
+        csv::escrever(cloud::arquivo_enviando, "2023;05;09;15;25;2;25;16;0;-1;1;0;120;1");
+    }
+
+    if(!SD.exists("UA.S")){
+
+         csv::escrever("UA.S", "2023;04;29;15;00;00");
+         Serial.println("Criado."); 
+    }
+
+    if(SD.exists("UA.S") && SD.exists(cloud::nome_ponteiro) && SD.exists(cloud::arquivo_enviando)){
+        return true;
+    }else{
+        return false;
+    }
+}
+
 void cloud::logicaNuvem(char *arquivoEnviando,EthernetClient *ethClient,bool *precisaOutroArquivo,char *nomeCSV,int numSerie)
 {
+    bool arquivos = cloud::verificar_arquivos();
+
+    if(!arquivos){
+        Serial.println("Problema no cartão SD");
+    }
     //Serial.println("Procurando dados para enviar para a DUO...");
     char *nomePonteiro=(char *) malloc(13*sizeof(char));
     snprintf(nomePonteiro,13*sizeof(char),"X%s",arquivoEnviando);
@@ -34,30 +65,21 @@ void cloud::logicaNuvem(char *arquivoEnviando,EthernetClient *ethClient,bool *pr
         file.close();
     }
 
+
+    if(cloud::linhasCSV == cloud::linhasPonteiro){
+        cloud::first = false;
+    }
+    if(cloud::first == false){
+        
     file=SD.open(arquivoEnviando,FILE_READ);
-    int linhasCSV = csv::contarLinhas(&file);
+    cloud::linhasCSV = csv::contarLinhas(&file);
     file.close();
 
     file=SD.open(nomePonteiro,FILE_READ);
-    int linhasPonteiro = csv::contarLinhas(&file);
+    cloud::linhasPonteiro = csv::contarLinhas(&file);
     file.close();
-
-    Serial.print("Linhas_P---------->");
-    Serial.print(linhasPonteiro);
-    Serial.print("\n");
-    Serial.print("Linhas_CSV---------->");
-    Serial.print(linhasCSV);
-    Serial.print("\n");
-
-    if(linhasCSV >= 0){
-        cloud::sd_ok = true;
-    }else{
-        cloud::sd_ok = false;
-    }
-    Serial.print("|---->");
-    Serial.print(strcmp(nomeCSV,arquivoEnviando));
-    Serial.print("\n");
-    /* if(cloud::first == false){ */
+    
+    cloud::first = true;
 
     /*         //Fazemos um POST simples só para informar ao servidor que está conectado */
     /*         int size=24; */
@@ -69,7 +91,21 @@ void cloud::logicaNuvem(char *arquivoEnviando,EthernetClient *ethClient,bool *pr
     /*         free(json); */
     /*         cloud::first = true; */
     /*         return; */
-    /* } */
+    }
+
+    Serial.print("Linhas_P---------->");
+    Serial.print(cloud::linhasPonteiro);
+    Serial.print("\n");
+    Serial.print("Linhas_CSV---------->");
+    Serial.print(cloud::linhasCSV);
+    Serial.print("\n");
+
+    if(linhasCSV >= 0){
+        cloud::sd_ok = true;
+    }else{
+        cloud::sd_ok = false;
+    }
+
     if(linhasCSV!=-1 || linhasPonteiro!=-1)
     {
         if(linhasCSV>linhasPonteiro)
@@ -104,6 +140,7 @@ void cloud::logicaNuvem(char *arquivoEnviando,EthernetClient *ethClient,bool *pr
                 {
                     Serial.println("Enviado");
                     csv::escrever(nomePonteiro,"P");
+                    cloud::linhasPonteiro++;
                 }
                 else
                 {

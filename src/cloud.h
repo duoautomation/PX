@@ -7,6 +7,11 @@
 class cloud
 {
 public:
+    static inline int linhasCSV = 0;
+    static inline int linhasPonteiro = 0;
+    static boolean verificar_arquivos();
+    static inline char *nome_ponteiro = "XL10-10.S";
+    static inline char *arquivo_enviando = "L10-10.S"; 
     static inline bool internet_ok = false;
     static inline bool first = false;
     static inline bool sd_ok = false;

@@ -4,6 +4,7 @@
 #include <Ethernet.h>
 #include <ArduinoRS485.h>
 #include <ArduinoModbus.h>
+#include <utility/w5100.h>
 
 //Variáveis Globais
 char *arquivoEnviando="L10-10.S";
@@ -14,13 +15,13 @@ bool precisaOutroArquivo;
 
 EthernetClient ethClient;
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
-IPAddress ip(192, 168, 1, 177);
+IPAddress ip(10, 202, 1, 254);
 
 EthernetServer server(80);
 ModbusTCPClient modbusTCPClient(ethClient);
 int counter;
 int numE;
-int numSerie=4;
+int numSerie=14;
 
 void iniciarEthernet()
 {
@@ -48,6 +49,8 @@ void setup()
     delay(5000);
     //pinMode(53,OUTPUT);
     SD.begin(4);
+    W5100.setRetransmissionTime(0x07D0);
+    W5100.setRetransmissionCount(3);
 
 
     Serial.begin(9600);
@@ -56,10 +59,14 @@ void setup()
     passo=-1;
     counter==0;
     numE=0;
+    /* char *ankanis = "XL10-10.S"; */
+    /* SD.remove(arquivoEnviando); */
+    /* SD.remove(ankanis); */
 }
 
 void loop()
 {
+    csv::ls('/');
     CLP::Break("INICIO");
     Serial.println("DUO AUTOMATION");
     //nomeCSV=(char *) malloc(9*sizeof(char));
