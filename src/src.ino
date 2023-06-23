@@ -15,7 +15,7 @@ bool precisaOutroArquivo;
 
 EthernetClient ethClient;
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
-IPAddress ip(10, 202, 1, 254);
+IPAddress ip(192, 168, 1, 177);
 
 EthernetServer server(80);
 ModbusTCPClient modbusTCPClient(ethClient);
