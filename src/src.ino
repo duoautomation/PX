@@ -21,7 +21,7 @@ EthernetServer server(80);
 ModbusTCPClient modbusTCPClient(ethClient);
 int counter;
 int numE;
-int numSerie=14;
+int numSerie = 45
 
 void iniciarEthernet()
 {
@@ -66,7 +66,6 @@ void setup()
 
 void loop()
 {
-    csv::ls('/');
     CLP::Break("INICIO");
     Serial.println("DUO AUTOMATION");
     //nomeCSV=(char *) malloc(9*sizeof(char));
