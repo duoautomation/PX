@@ -21,8 +21,8 @@ EthernetServer server(80);
 ModbusTCPClient modbusTCPClient(ethClient);
 int counter;
 int numE;
-int numSerie = 45
-
+int numSerie = 33
+;
 void iniciarEthernet()
 {
     Ethernet.init(10);
