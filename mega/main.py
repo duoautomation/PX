@@ -91,18 +91,17 @@ def menu():
             porta = encontrar_placas()
 
             num_serie = input('Digite o número de série: ')
-            trocar_num_serie(num_serie)
+            #trocar_num_serie(num_serie)
 
             _compile = "arduino-cli compile --fqbn arduino:avr:mega"
             os.system(_compile)
 
-            porta = "COM7"
             _upload = "arduino-cli upload -v --fqbn arduino:avr:mega -p " + porta
             os.system(_upload)
 
             
         elif opcao == 1:
-            _run = "ComPrinter.exe /baudrate 115200"
+            _run = "ComPrinter.exe /baudrate 9600"
             os.system(_run)
 
         elif opcao == -1:

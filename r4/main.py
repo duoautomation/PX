@@ -68,6 +68,7 @@ def menu():
 
         
         opcao = input('Digite a opção: ')
+        #opcao = 2
         try:
             opcao = int(opcao)
         except:
@@ -90,27 +91,23 @@ def menu():
 
             porta = encontrar_placas()
 
-            num_serie = input('Digite o número de série: ')
-            trocar_num_serie(num_serie)
-
-            _compile = "arduino-cli compile --fqbn arduino:avr:mega"
+            _compile = "arduino-cli compile --fqbn arduino:renesas_uno:unor4wifi"
             os.system(_compile)
 
-            porta = "COM7"
-            _upload = "arduino-cli upload -v --fqbn arduino:avr:mega -p " + porta
+            porta = 'COM46'
+            _upload = "arduino-cli upload -v --fqbn arduino:renesas_uno:unor4wifi -p " + porta
+            print(_upload)
             os.system(_upload)
 
             
         elif opcao == 1:
-            _run = "ComPrinter.exe /baudrate 115200"
+            _run = "ComPrinter.exe /baudrate 9600"
             os.system(_run)
 
         elif opcao == -1:
             print("...")
             break
         
-
-
 
 menu()
 

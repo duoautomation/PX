@@ -36,6 +36,62 @@ boolean cloud::verificar_arquivos(){
     }
 }
 
+void limpar_buffer(){
+    while(Serial2.available()>0){
+        Serial2.read();
+    }
+}
+
+void enviar_serial(char *json, char *nomePonteiro){
+              //Codigo Novo
+            //Vemos quantos caracteres precisam ser tratados no buffer
+            //Leitura. Todas as leitura são códigos
+            Serial.println("Envio serialllll");
+            int number_char_read = Serial2.available();
+            byte code = 0;
+            
+            if(number_char_read > 0 ){
+                Serial.print("Reading:");Serial.print(number_char_read);Serial.print('\n');
+                code = Serial2.read()-48; 
+            }
+
+            if(code>10){
+                Serial.println("Limpando o buffer");
+                limpar_buffer();
+                delay(5000);
+                Serial.println("Buffer vazio");
+                code = 0;
+            }
+
+            Serial.print("--CODE:");Serial.print(code);Serial.print('\n');
+            Serial.print("--ACODE:");Serial.print((char) (code + 48));Serial.print('\n');
+
+            //TODO: Tratar o código.
+            switch(code){
+                case 1: 
+                Serial.println("Mandando novamente.");
+                Serial.print("Json enviado "); Serial.println(json);
+                Serial2.print(json);
+                code = 0;
+                //Mandar novamente a linha atual
+                break;
+                case 2:
+                //Ticar a linha 
+                Serial.println("Ticando a linha.");
+                //Serial.println("Enviado");
+                csv::escrever(nomePonteiro,"P");
+                cloud::linhasPonteiro++;
+                //cloud::linhasPonteiro++; 
+                //Mandar a próxima linha
+                break;
+                case 0:
+                Serial.println("Nada para enviar.");
+                //Não fazer nada
+                break;
+                default:
+                break;
+            }
+}
 void cloud::logicaNuvem(char *arquivoEnviando,EthernetClient *ethClient,bool *precisaOutroArquivo,char *nomeCSV,int numSerie)
 {
     bool arquivos = cloud::verificar_arquivos();
@@ -132,20 +188,11 @@ void cloud::logicaNuvem(char *arquivoEnviando,EthernetClient *ethClient,bool *pr
                 Serial.print(nomePonteiro);
                 Serial.print("\n");
 
-                //bool result = sendPOST(json,ethClient);
-                bool result = sendGET(json, ethClient);
+                enviar_serial(json, nomePonteiro);
+                //Fim do Código novo
+                //bool result = sendGET(json, ethClient);
                 free(json);
 
-                if(result)
-                {
-                    Serial.println("Enviado");
-                    csv::escrever(nomePonteiro,"P");
-                    cloud::linhasPonteiro++;
-                }
-                else
-                {
-                    Serial.println("Erro HTTP");
-                }
 
             }
             free(linha);

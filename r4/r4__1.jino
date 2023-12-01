@@ -1,0 +1,102 @@
+#include<SoftwareSerial.h>
+#include<WiFi.h>
+#include<HttpClient.h>
+#include<WiFiClient.h>
+const char *ssid = "StarDuo";
+const char *password = "$Mc 7352";
+
+WiFiClient client;
+
+int rxPin = 2;
+int txPin = 3;
+
+//char *nome_servidor= "http://adm.duo.com.br/";
+char nome_servidor[]="23.239.10.90";
+
+//char *nome_servidor = "http://adm.duo.com.br:8080/test?raw=2023;11;29;15;26;2;25;16;0;-1;1;0;2929;1";
+
+SoftwareSerial mega(rxPin, txPin);
+
+void setup(){
+    Serial.begin(115200);
+    mega.begin(115200);
+    mega.flush();
+
+    pinMode(rxPin, INPUT);
+    pinMode(txPin, OUTPUT);
+    WiFi.begin(ssid, password);
+
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(1000);
+        Serial.println("Connecting to WiFi...");
+    }
+    Serial.println("Connected to WiFi");
+
+}
+
+int sendGET(char *data, WiFiClient *client){
+
+    int timer;
+    char compareMe[]="INSERIDO\0";
+    int match = 0;
+    char servidor[]="23.239.10.90";
+
+    if (client->connect(servidor,8080))
+    { 
+        client->setTimeout(10000);
+        Serial.println("Conectado");
+        client->println(data);
+        Serial.println(data);
+        client->println("Host: adm.duo.com.br");
+        Serial.println("Host: adm.duo.com.br"); 
+        client->println("Connection: close");
+        Serial.println("Connection: close");
+         
+        client->println();
+        Serial.println("Enviado, aguardando resposta.");
+    }else{
+            return 1;
+    }
+
+        timer = 0;
+
+        while(!client->available()){
+                Serial.print(".");
+                delay(100);
+                timer++;
+                if(timer == 50){
+                        return 0;
+                }
+        }
+        
+        while(client->available() && client->connected() && match<8){
+
+                char c = client->read(); 
+                Serial.print(c); 
+                
+                if(compareMe[match] == c){
+                        match++;
+                }else{
+                        match = 0;
+                }
+        }
+
+        client->flush();
+        client->stop();
+        
+        Serial.println("MATCH");
+        if(match == 8){
+                return 1;
+        }else{
+                return 0;
+        }
+}
+
+void loop(){
+    mega.flush();
+    Serial.println("Funcional...");
+    char data[] = "GET /test?raw=2023;11;29;16;26;2;25;16;0;-1;1;0;2929;1";
+    int resultado = sendGET(data, &client);
+    Serial.print("Resultado:");
+    Serial.println(resultado);
+}

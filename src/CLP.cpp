@@ -253,7 +253,7 @@ char *CLP::contar(ModbusTCPClient *modbusTCPClient,char *nomeCSV,int *passo,int 
 
     int resultado = comparar_dados(znap, &dados, passo);
     dados_cp(&dados, znap);
-    printar_dados(&dados);
+    //printar_dados(&dados);
     
 
     if(resultado == -2 || resultado == -1){

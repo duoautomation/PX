@@ -21,8 +21,8 @@ EthernetServer server(80);
 ModbusTCPClient modbusTCPClient(ethClient);
 int counter;
 int numE;
-int numSerie = 33
-;
+int numSerie = 4;
+
 void iniciarEthernet()
 {
     Ethernet.init(10);
@@ -46,14 +46,15 @@ void setup()
     pinMode(4,OUTPUT);
     digitalWrite(10,HIGH);
     digitalWrite(4,HIGH);
-    delay(5000);
+    delay(50);
     //pinMode(53,OUTPUT);
     SD.begin(4);
     W5100.setRetransmissionTime(0x07D0);
     W5100.setRetransmissionCount(3);
 
+    Serial.begin(115200);
+    Serial2.begin(115200);
 
-    Serial.begin(9600);
     precisaOutroArquivo=true;
     iniciarEthernet();
     passo=-1;
